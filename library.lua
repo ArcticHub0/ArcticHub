@@ -256,7 +256,7 @@ function Library.new(config)
 		Title = "UI Library",
 		Description = "discord.gg/BH6pE7jesa",
 		Keybind = Enum.KeyCode.LeftControl,
-		Logo = "http://www.roblox.com/asset/?id=138027160741732",
+		Logo = "http://www.roblox.com/asset/?id=100776375646681",
 		Size = UDim2.new(0.100000001, 445, 0.100000001, 315)
 	});
 
