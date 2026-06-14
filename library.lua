@@ -3451,7 +3451,4 @@ function Library:Console()
 
 	return overview;
 end;
-
-print('[ OK ]: Fetch Nothing Library')
-
 return table.freeze(Library);
