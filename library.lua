@@ -2480,11 +2480,14 @@ function Library.new(config)
 		end
 
 		if ElBlurUI then
+			print("YAY")
 			if ElBlurUI.Destroy then
+				print("YO")
 				ElBlurUI:Destroy()
 			end
 			ElBlurUI = nil
 		end
+		print("NOPE")
 	end
 
 	return WindowTable;
