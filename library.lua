@@ -2473,6 +2473,13 @@ function Library.new(config)
 		end;
 	end)
 
+	function WindowTable:Close()
+		pcall(function()
+			ScreenGui:Destroy()
+			WindowTable.ElBlurUI.Enabled = true;
+		end)
+	end
+
 	return WindowTable;
 end;
 
