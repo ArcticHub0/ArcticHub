@@ -2474,20 +2474,33 @@ function Library.new(config)
 	end)
 
 	function WindowTable:Close()
-		if ScreenGui then
-			ScreenGui:Destroy()
-			ScreenGui = nil
-		end
+		Twen:Create(MainDropShadow,TweenInfo.new(1,Enum.EasingStyle.Quint,Enum.EasingDirection.InOut),{
+				ImageTransparency = 1
+			}):Play();
 
-		if WindowTable.ElBlurUI.Enable then
-			print("YAY")
-			if WindowTable.ElBlurUI.Destroy then
-				print("YO")
-				WindowTable.ElBlurUI:Destroy()
-			end
-			WindowTable.ElBlurUI = nil
-		end
-		print("NOPE")
+			BlueEffect.Destroy();
+
+
+			for i,v in ipairs(cose) do
+				game:GetService('RunService'):UnbindFromRenderStep(v);
+			end;
+
+			Twen:Create(MainFrame,TweenInfo.new(1,Enum.EasingStyle.Quint,Enum.EasingDirection.InOut),{
+				Size = UDim2.new(0.8,0,0.8,0)
+			}):Play();
+
+			task.delay(1,function()
+				Twen:Create(MainFrame,TweenInfo.new(1,Enum.EasingStyle.Quint,Enum.EasingDirection.InOut),{
+					Position = UDim2.new(0.5, 0, 1.5, 0),
+					Size = UDim2.new(0.8,0,0.8,0)
+				}):Play();
+
+				task.delay(1.2,function()
+
+					ScreenGui:Destroy()
+
+			end)
+		end)
 	end
 
 	return WindowTable;
