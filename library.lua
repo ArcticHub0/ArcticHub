@@ -3006,7 +3006,7 @@ Library.Notification = function()
 
 
 
-				task.delay(1 + ctfx.Duration, function()
+				task.delay(ctfx.Duration, function()
 					mkLoad()
 
 					task.wait(0.65)
