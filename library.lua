@@ -2474,10 +2474,17 @@ function Library.new(config)
 	end)
 
 	function WindowTable:Close()
-		pcall(function()
+		if ScreenGui then
 			ScreenGui:Destroy()
-			WindowTable.ElBlurUI.Enabled = false;
-		end)
+			ScreenGui = nil
+		end
+
+		if self.ElBlurUI then
+			if self.ElBlurUI.Destroy then
+				self.ElBlurUI:Destroy()
+			end
+			self.ElBlurUI = nil
+		end
 	end
 
 	return WindowTable;
