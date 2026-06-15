@@ -2479,7 +2479,7 @@ function Library.new(config)
 			ScreenGui = nil
 		end
 
-		if WindowTable.ElBlurUI then
+		if WindowTable.ElBlurUI.Enable then
 			print("YAY")
 			if WindowTable.ElBlurUI.Destroy then
 				print("YO")
