@@ -3004,11 +3004,10 @@ Library.Notification = function()
 				task.wait(0.5)
 				mkView();
 
-				task.delay(ctfx.Duration, function()
-
-    				local closing = true
-
-    				local t1 = Twen:Create(Notifiy, css_style, {
+				local function Close()
+					mkLoad()
+					
+					local t1 = Twen:Create(Notifiy, css_style, {
         				BackgroundTransparency = 1,
         				Size = UDim2.new(0,0,0,0)
     				})
@@ -3034,7 +3033,8 @@ Library.Notification = function()
     				if Notification then
         				Notification:Destroy()
     				end
-				end)
+				end		
+				task.delay(ctfx.Duration, Close)
 			end)
 		end,
 	}
