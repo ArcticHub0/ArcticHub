@@ -3004,42 +3004,36 @@ Library.Notification = function()
 				task.wait(0.5)
 				mkView();
 
-
-
 				task.delay(ctfx.Duration, function()
-					mkLoad()
 
-					task.wait(0.65)
+    				local closing = true
 
-					local t1 = Twen:Create(Notifiy, css_style, {
-						BackgroundTransparency = 1,
-						Size = UDim2.new(0,0,0,0)
-					})
+    				local t1 = Twen:Create(Notifiy, css_style, {
+        				BackgroundTransparency = 1,
+        				Size = UDim2.new(0,0,0,0)
+    				})
 
-					local t2 = Twen:Create(icon, css_style, {
-						ImageTransparency = 1
-					})
+    				local t2 = Twen:Create(icon, css_style, {
+        				ImageTransparency = 1
+    				})
 
-					local t3 = Twen:Create(DropShadow, css_style, {
-						ImageTransparency = 1
-					})
+    				local t3 = Twen:Create(DropShadow, css_style, {
+        				ImageTransparency = 1
+    				})
 
-					t1:Play()
-					t2:Play()
-					t3:Play()
+    				t1:Play()
+    				t2:Play()
+    				t3:Play()
 
-					t1.Completed:Wait()
-					t2.Completed:Wait()
-					t3.Completed:Wait()
+   					t1.Completed:Wait()
 
+    				if Notifiy then
+        				Notifiy:Destroy()
+    				end
 
-					if Notifiy then
-						Notifiy:Destroy()
-					end
-
-					if Notification then
-						Notification:Destroy()
-					end
+    				if Notification then
+        				Notification:Destroy()
+    				end
 				end)
 			end)
 		end,
