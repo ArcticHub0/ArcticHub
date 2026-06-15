@@ -2475,7 +2475,7 @@ function Library.new(config)
 
 	function WindowTable:Close()
 		ScreenGui:Destroy()
-		WindowTable.ElBlurUI.Enabled = false;
+		WindowTable.ElBlurUI.Destroy()
 	end
 
 	return WindowTable;
