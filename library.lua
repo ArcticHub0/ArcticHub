@@ -2479,11 +2479,11 @@ function Library.new(config)
 			ScreenGui = nil
 		end
 
-		if self.ElBlurUI then
-			if self.ElBlurUI.Destroy then
-				self.ElBlurUI:Destroy()
+		if ElBlurUI then
+			if ElBlurUI.Destroy then
+				ElBlurUI:Destroy()
 			end
-			self.ElBlurUI = nil
+			ElBlurUI = nil
 		end
 	end
 
