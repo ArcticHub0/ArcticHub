@@ -3025,6 +3025,7 @@ Library.Notification = function()
 					}):Play()
 
 					task.delay(0.5,Notifiy.Destroy,Notifiy)
+					Notification:Destroy()
 				end)
 			end)
 		end,
