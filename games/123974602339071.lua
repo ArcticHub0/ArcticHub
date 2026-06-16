@@ -131,7 +131,7 @@ local function notify(t, d)
         Notification.new({
             Title       = t,
             Description = d,
-            Duration    = 5,
+            Duration    = 3.5,
             Icon        = "rbxassetid://8997385628"
         })
     end)
@@ -248,7 +248,7 @@ InfoSection:NewButton({
     Icon     = "rbxassetid://7734053495",
     Callback = function()
         if setclipboard then
-            pcall(setclipboard, "discord.gg/BH6pE7jesa")
+            pcall(setclipboard, "discord.gg/pFWmd65Wsf")
             notify("Discord", "Invite link copied to clipboard")
         end
     end
