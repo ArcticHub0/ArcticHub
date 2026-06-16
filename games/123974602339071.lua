@@ -98,6 +98,61 @@ local isPremium = validResult.isPremium == true
 print("[ArcticHub] Auth verified — loading game features")
 print("[ArcticHub] Tier: " .. (isPremium and "Premium" or "Free"))
 
+--==Functions==
+game:GetService("Players").LocalPlayer.PlayerGui.MainGui.main.setting.ScrollingFrame.toggle.Visible = false
+local AntiFling = {}
+AntiFling.Enabled = false
+AntiFling.Connections = {}
+
+local function CleanupConnections()
+	for _, connection in pairs(AntiFling.Connections) do
+		if connection then
+			connection:Disconnect()
+		end
+	end
+
+	table.clear(AntiFling.Connections)
+end
+
+function AntiFling:Toggle(state)
+	self.Enabled = state
+
+	CleanupConnections()
+
+	if state then
+		local playerAdded = Players.PlayerAdded:Connect(function(player)
+			player.CharacterAdded:Connect(f17)
+		end)
+
+		table.insert(self.Connections, playerAdded)
+
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player.Character then
+				f17(player.Character)
+			end
+
+			local charAdded = player.CharacterAdded:Connect(f17)
+			table.insert(self.Connections, charAdded)
+		end
+	else
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer2 then
+				local character = player.Character
+
+				if character then
+					for _, obj in ipairs(character:GetDescendants()) do
+						if obj:IsA("BasePart") then
+							obj.CanCollide = false
+							obj.AssemblyLinearVelocity = Vector3.zero
+							obj.AssemblyAngularVelocity = Vector3.zero
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
 -- ============================================================
 --  Load UI library for the game window
 -- ============================================================
@@ -139,7 +194,7 @@ end
 
 local Windows = UI.new({
     Title       = "ArcticHub",
-    Description = "Baseplate",
+    Description = "Game Script",
     Keybind     = Enum.KeyCode.LeftAlt,
     Logo        = "http://www.roblox.com/asset/?id=100776375646681"
 })
@@ -159,76 +214,12 @@ local Section = MainTab:NewSection({
 })
 
 Section:NewToggle({
-    Title    = "Auto Farm",
+    Title    = "Anti Fling",
     Default  = false,
-    Callback = function(v)
-        print("Auto Farm:", v)
+    Callback = function(state)
+        AntiFling:Toggle(state)
     end
 })
-
-Section:NewSlider({
-    Title    = "WalkSpeed",
-    Min      = 16,
-    Max      = 100,
-    Default  = 16,
-    Callback = function(v)
-        local char = game.Players.LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = v
-        end
-    end
-})
-
-Section:NewSlider({
-    Title    = "JumpPower",
-    Min      = 50,
-    Max      = 300,
-    Default  = 50,
-    Callback = function(v)
-        local char = game.Players.LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.JumpPower = v
-        end
-    end
-})
-
--- premium-only section, shown but locked for free tier
-local PremiumSection = MainTab:NewSection({
-    Title    = isPremium and "Premium Features" or "Premium Features (Locked)",
-    Icon     = "rbxassetid://7733964719",
-    Position = "Left"
-})
-
-if isPremium then
-    PremiumSection:NewToggle({
-        Title    = "Fly",
-        Default  = false,
-        Callback = function(v)
-            print("Fly:", v)
-        end
-    })
-
-    PremiumSection:NewButton({
-        Title    = "Teleport to 0,0,0",
-        Callback = function()
-            local char = game.Players.LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = CFrame.new(0, 5, 0)
-            end
-        end
-    })
-else
-    PremiumSection:NewTitle("Upgrade to Premium to unlock these features")
-    PremiumSection:NewButton({
-        Title    = "Get Premium",
-        Callback = function()
-            if setclipboard then
-                pcall(setclipboard, "discord.gg/BH6pE7jesa")
-                notify("Premium", "Discord link copied — ask for Premium in our server")
-            end
-        end
-    })
-end
 
 local InfoSection = MainTab:NewSection({
     Title    = "Session",
