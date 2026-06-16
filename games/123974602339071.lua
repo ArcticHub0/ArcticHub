@@ -100,59 +100,64 @@ print("[ArcticHub] Tier: " .. (isPremium and "Premium" or "Free"))
 
 --==Functions==
 game:GetService("Players").LocalPlayer.PlayerGui.MainGui.main.setting.ScrollingFrame.toggle.Visible = false
-local AntiFling = {}
-AntiFling.Enabled = false
-AntiFling.Connections = {}
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local AntiFlingEnabled = true
 
-local function CleanupConnections()
-	for _, connection in pairs(AntiFling.Connections) do
-		if connection then
-			connection:Disconnect()
-		end
-	end
+local originalState = {}
 
-	table.clear(AntiFling.Connections)
+local function cacheCharacter(char)
+    if originalState[char] then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    originalState[char] = {
+        CanCollide = hrp.CanCollide,
+    }
 end
 
-function AntiFling:Toggle(state)
-	self.Enabled = state
+local function restoreCharacter(char)
+    local data = originalState[char]
+    if not data then return end
 
-	CleanupConnections()
-
-	if state then
-		local playerAdded = Players.PlayerAdded:Connect(function(player)
-			player.CharacterAdded:Connect(f17)
-		end)
-
-		table.insert(self.Connections, playerAdded)
-
-		for _, player in ipairs(Players:GetPlayers()) do
-			if player.Character then
-				f17(player.Character)
-			end
-
-			local charAdded = player.CharacterAdded:Connect(f17)
-			table.insert(self.Connections, charAdded)
-		end
-	else
-		for _, player in ipairs(Players:GetPlayers()) do
-			if player ~= LocalPlayer2 then
-				local character = player.Character
-
-				if character then
-					for _, obj in ipairs(character:GetDescendants()) do
-						if obj:IsA("BasePart") then
-							obj.CanCollide = false
-							obj.AssemblyLinearVelocity = Vector3.zero
-							obj.AssemblyAngularVelocity = Vector3.zero
-						end
-					end
-				end
-			end
-		end
-	end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.CanCollide = data.CanCollide
+    end
 end
 
+local function SetAntiFling(state)
+    AntiFlingEnabled = state
+
+    if not state then
+        for char, _ in pairs(originalState) do
+            if char and char.Parent then
+                restoreCharacter(char)
+            end
+        end
+    end
+end
+
+RunService.Stepped:Connect(function()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local char = plr.Character
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+
+            if hrp then
+                cacheCharacter(char)
+
+                if AntiFlingEnabled then
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                    hrp.AssemblyAngularVelocity = Vector3.zero
+                    hrp.CanCollide = false
+                end
+            end
+        end
+    end
+end)
 -- ============================================================
 --  Load UI library for the game window
 -- ============================================================
@@ -217,7 +222,7 @@ Section:NewToggle({
     Title    = "Anti Fling",
     Default  = false,
     Callback = function(state)
-        AntiFling:Toggle(state)
+        SetAntiFling(state)
     end
 })
 
