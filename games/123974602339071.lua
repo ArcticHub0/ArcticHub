@@ -99,65 +99,74 @@ print("[ArcticHub] Auth verified — loading game features")
 print("[ArcticHub] Tier: " .. (isPremium and "Premium" or "Free"))
 
 --==Functions==
-game:GetService("Players").LocalPlayer.PlayerGui.MainGui.main.setting.ScrollingFrame.toggle.Visible = false
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local AntiFlingEnabled = true
+local originalCollision = {}
 
-local originalState = {}
-
-local function cacheCharacter(char)
-    if originalState[char] then return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    originalState[char] = {
-        CanCollide = hrp.CanCollide,
-    }
+local function isCore(part)
+    return part.Name == "HumanoidRootPart"
+        or part.Name == "UpperTorso"
+        or part.Name == "LowerTorso"
+        or part.Name == "Torso"
 end
 
-local function restoreCharacter(char)
-    local data = originalState[char]
-    if not data then return end
+local function cacheCharacter(char)
+    if originalCollision[char] then return end
 
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        hrp.CanCollide = data.CanCollide
+    originalCollision[char] = {}
+
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            originalCollision[char][part.Name] = part.CanCollide
+        end
     end
 end
 
-local function SetAntiFling(state)
-    AntiFlingEnabled = state
+local function apply(char, state)
+    local cache = originalCollision[char]
 
-    if not state then
-        for char, _ in pairs(originalState) do
-            if char and char.Parent then
-                restoreCharacter(char)
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+
+            if state then
+                part.CanCollide = false
+            else
+                -- restore safely by NAME (not instance)
+                if cache and cache[part.Name] ~= nil then
+                    part.CanCollide = cache[part.Name]
+                else
+                    part.CanCollide = true
+                end
             end
         end
     end
 end
 
 RunService.Stepped:Connect(function()
+    if not AntiFlingEnabled then return end
+
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
-            local char = plr.Character
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-
-            if hrp then
-                cacheCharacter(char)
-
-                if AntiFlingEnabled then
-                    hrp.AssemblyLinearVelocity = Vector3.zero
-                    hrp.AssemblyAngularVelocity = Vector3.zero
-                    hrp.CanCollide = false
-                end
-            end
+            cacheCharacter(plr.Character)
+            apply(plr.Character, true)
         end
     end
 end)
+
+local function SetAntiFling(state)
+    AntiFlingEnabled = state
+
+    if not state then
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr.Character then
+                cacheCharacter(plr.Character)
+                apply(plr.Character, false)
+            end
+        end
+    end
+end
 -- ============================================================
 --  Load UI library for the game window
 -- ============================================================
