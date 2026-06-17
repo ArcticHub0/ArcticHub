@@ -231,6 +231,7 @@ Section:NewToggle({
     Title    = "Anti Fling",
     Default  = false,
     Callback = function(state)
+        print("Toggle changed:", state)
         SetAntiFling(state)
     end
 })
