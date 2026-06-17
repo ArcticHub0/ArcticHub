@@ -157,7 +157,7 @@ end)
 
 local function SetAntiFling(state)
     AntiFlingEnabled = state
-
+    print("AntiFling:", state)
     if not state then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr.Character then
