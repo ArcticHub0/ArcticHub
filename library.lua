@@ -6633,7 +6633,12 @@ function D.openDialog(o)
 		end)
 	end
 
-	local foot = frame({Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = 4, Parent = body})
+	local statusL
+	if o.Status then
+		statusL = text({Text = "", TextSize = 12, TextColor3 = T.sub, TextWrapped = true, RichText = false, Visible = false, AutomaticSize = Enum.AutomaticSize.Y, Size = UDim2.new(1, 0, 0, 0), LayoutOrder = 4, Parent = body})
+	end
+
+	local foot = frame({Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = o.Status and 5 or 4, Parent = body})
 	hlist(foot, 8, Enum.HorizontalAlignment.Right)
 
 	local d = {}
@@ -6659,6 +6664,17 @@ function D.openDialog(o)
 	end
 	d.Close = function() d.close() end
 
+	function d.setStatus(str, kind)
+		if not statusL or not statusL.Parent then return end
+		if str == nil or str == "" then
+			statusL.Visible = false
+			return
+		end
+		statusL.Visible = true
+		statusL.TextColor3 = kind == "error" and DANGER or kind == "ok" and D.TONES.Success or T.sub
+		statusL.Text = tostring(str)
+	end
+
 	local list = o.Buttons
 	if type(list) ~= "table" or #list == 0 then
 		list = input and {{Name = "Cancel"}, {Name = o.Confirm or "Done", Callback = o.Callback}} or {{Name = "OK", Style = "Primary"}}
@@ -6675,9 +6691,14 @@ function D.openDialog(o)
 			local ok, msg = o.Validate(value)
 			if not ok then
 				D.play("error")
-				if msg and not o.Silent then D.notify(o.Title or "Input", msg, {kind = "Warning", dur = 3}) end
+				if o.Status and d.setStatus then
+					d.setStatus(msg, "error")
+				elseif msg and not o.Silent then
+					D.notify(o.Title or "Input", msg, {kind = "Warning", dur = 3})
+				end
 				return
 			end
+			if o.Status and d.setStatus then d.setStatus(nil) end
 		end
 		d.close()
 		if bd.Callback then task.spawn(bd.Callback, value) end
@@ -10461,8 +10482,10 @@ local function checkKey(ks, key)
 	key = string.gsub(string.gsub(tostring(key or ""), "^%s+", ""), "%s+$", "")
 	if key == "" then return false end
 	if type(ks.Check) == "function" then
-		local ok, r = pcall(ks.Check, key)
-		return ok and r == true
+		local ok, a, b = pcall(ks.Check, key)
+		if not ok then return false, "CHECK_ERROR" end
+		if a == true then return true, b end
+		return false, b or "KEY_INVALID"
 	end
 	local keys = ks.Keys or ks.Key
 	if type(keys) == "string" then keys = {keys} end
@@ -10472,9 +10495,32 @@ local function checkKey(ks, key)
 	return false
 end
 
+-- Error-code -> friendly message for custom Check validators. A Check function
+-- may return `true` or `false, "<code>"`; codes not in the map fall back to ks.Wrong.
+local KEY_ERRS = {
+	KEY_INVALID = "That key is not valid.",
+	KEY_EXPIRED = "That key has expired. Get a new one.",
+	KEY_INVALIDATED = "That key was disabled by the owner.",
+	ALREADY_USED = "That one-time key has already been used.",
+	HWID_MISMATCH = "That key is bound to another device. Contact the script owner.",
+	HWID_BANNED = "Your device is banned from this service.",
+	SERVICE_MISMATCH = "That key belongs to a different service.",
+	SERVICE_NOT_FOUND = "The key service is unavailable.",
+	PREMIUM_REQUIRED = "This script requires a premium key.",
+	RATE_LIMITTED = "Too many attempts. Wait a bit, then try again.",
+	http_429 = "Too many attempts. Wait a bit, then try again.",
+	ERROR = "Could not reach the key service. Try again.",
+	CHECK_ERROR = "Could not reach the key service. Try again.",
+}
+local function keyErrMsg(ks, code)
+	if not code then return nil end
+	local c = tostring(code)
+	return (ks.Errors and ks.Errors[c]) or KEY_ERRS[c] or KEY_ERRS[string.gsub(c, "%s", "_")]
+end
+
 local function runKeySystem(ks, done)
 	local path = DIR .. "/key.txt"
-	if ks.SaveKey ~= false and isfile and readfile then
+	if ks.SaveKey ~= false and not ks.Once and isfile and readfile then
 		local ok, saved = pcall(function() return isfile(path) and readfile(path) end)
 		if ok and type(saved) == "string" and checkKey(ks, saved) then
 			done()
@@ -10486,11 +10532,31 @@ local function runKeySystem(ks, done)
 	D.applyTheme()
 	D.applyMetrics()
 	D.keyLock = true
+	local dlg
+	local checking = false
 	local buttons = {}
 	if ks.Link then
-		buttons[#buttons + 1] = {Name = "Get Key", Keep = true, Callback = function()
-			if setclipboard then pcall(setclipboard, tostring(ks.Link)) end
-		end}
+		if type(ks.Link) == "function" then
+			local busy = false
+			buttons[#buttons + 1] = {Name = "Get Key", Keep = true, Callback = function()
+				if busy then return end
+				busy = true
+				local ok, a, b = pcall(ks.Link)
+				local link, err = ok and a, ok and b
+				if not ok then link, err = nil, a end
+				busy = false
+				if link then
+					if setclipboard then pcall(setclipboard, tostring(link)) end
+					if dlg and dlg.setStatus then dlg.setStatus("Key link (copied): " .. tostring(link), "ok") end
+				elseif dlg and dlg.setStatus then
+					dlg.setStatus(err == "RATE_LIMITTED" and "Too many requests. Wait a minute, then try again." or (err or "Could not get a key link. Try again."), "error")
+				end
+			end}
+		else
+			buttons[#buttons + 1] = {Name = "Get Key", Keep = true, Callback = function()
+				if setclipboard then pcall(setclipboard, tostring(ks.Link)) end
+			end}
+		end
 	end
 	buttons[#buttons + 1] = {Name = "Continue", Style = "Primary", Callback = function(key)
 		if ks.SaveKey ~= false and writefile then
@@ -10503,12 +10569,13 @@ local function runKeySystem(ks, done)
 	end}
 	D.backdropHold = true
 	D.applyBackdrop()
-	D.openDialog({
+	dlg = D.openDialog({
 		Title = ks.Title or ((D.CONFIG.Title or "Menu") .. " Key"),
 		Content = ks.Note or ks.Content,
 		Icon = "key-round",
 		Input = {Placeholder = ks.Placeholder or "Enter key"},
 		Dismissable = false,
+		Status = true,
 		Surface = T.win,
 		Glass = 0.55,
 		Silent = true,
@@ -10520,8 +10587,12 @@ local function runKeySystem(ks, done)
 			UI.Unload()
 		end,
 		Validate = function(key)
-			if checkKey(ks, key) then return true end
-			return false, ks.Wrong or "That key is not valid."
+			if checking then return false, "" end
+			checking = true
+			local ok, code = checkKey(ks, key)
+			checking = false
+			if ok then return true end
+			return false, keyErrMsg(ks, code) or ks.Wrong or "That key is not valid."
 		end,
 		Buttons = buttons,
 	})
