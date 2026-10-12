@@ -5419,8 +5419,6 @@ function D.buildWindow()
 		beginDrag()
 	end)
 	if D.CONFIG.Search ~= false then D.buildSearch(panel) end
-	W.title = text({Position = UDim2.fromOffset(18 + 300 + 14, 14), Size = UDim2.fromOffset(180, 18), FontFace = D.F(D.W.semi), TextSize = 14, TextColor3 = T.text, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 4, Parent = panel})
-	W.subtitle = text({Position = UDim2.fromOffset(18 + 300 + 14, 32), Size = UDim2.fromOffset(180, 16), TextSize = 11, TextColor3 = T.dim, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 4, Parent = panel})
 
 	local bell = headerButton(tools, "bell", "Notification center", 1)
 	local dot = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -8, 0, 8), Size = UDim2.fromOffset(8, 8), BackgroundColor3 = D.accent(), Visible = false, ZIndex = 6, Parent = bell})
@@ -5503,7 +5501,6 @@ function D.setMinimized(v)
 	for _, o in ipairs(W.bottom or {}) do
 		if o.Parent then o.Visible = not v end
 	end
-	if W.credit then W.credit.Visible = not v end
 	if W.minB then
 		for _, c in ipairs(W.minB:GetChildren()) do
 			if c:IsA("ImageLabel") then D.setIcon(c, v and "maximize-2" or "minus") end
@@ -5513,35 +5510,9 @@ function D.setMinimized(v)
 	D.fire("__minimized")
 end
 
-local CREDIT_TEXT = "made with ArcticHub"
-function D.makeCredit(win)
-	local credit = button({Name = "Credit", Position = UDim2.new(0, 14, 1, -104), Size = UDim2.new(0, SIDE_W - 28, 0, 16), Text = CREDIT_TEXT, TextSize = 11, FontFace = D.F(D.W.med), TextColor3 = T.dim, TextTransparency = 0.25, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 40, Visible = not W.minimized, Parent = win})
-	D.tip(credit, "ArcticHub.")
-	credit.MouseEnter:Connect(function() tween(credit, 0.15, {TextTransparency = 0, TextColor3 = T.sub}) end)
-	credit.MouseLeave:Connect(function() tween(credit, 0.2, {TextTransparency = 0.25, TextColor3 = T.dim}) end)
-	credit.MouseButton1Click:Connect(function()
-		D.play("click")
-		D.runAction("act_lib_link")
-	end)
-	W.credit = credit
-	return credit
-end
-
-local creditClock = 0
-local function creditOk(c, win)
-	return c and c.Parent == win and c.Visible and c.Text == CREDIT_TEXT and c.TextTransparency < 0.6 and c.TextSize >= 9
-		and c.AbsoluteSize.X >= 60 and c.AbsoluteSize.Y >= 10 and c.ZIndex >= 40
-end
+function D.makeCredit(win) end
 
 function D.stepWindow(dt)
-	creditClock += dt
-	if creditClock > 1 and W.win and W.win.Parent then
-		creditClock = 0
-		if not W.minimized and not creditOk(W.credit, W.win) then
-			pcall(function() if W.credit then W.credit:Destroy() end end)
-			D.makeCredit(W.win)
-		end
-	end
 	local win = W.win
 	if not win or not win.Visible then return end
 	local k = 1 - math.exp(-dt * 26)
