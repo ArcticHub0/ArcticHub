@@ -6706,6 +6706,50 @@ function D.openDialog(o)
 		end)
 	end
 
+	local xb
+	if o.Close then
+		xb = button({Size = UDim2.fromOffset(28, 28), BackgroundColor3 = T.field, BackgroundTransparency = 0, LayoutOrder = 3, ZIndex = 2, Parent = head})
+		corner(xb, M.rField + 2)
+		stroke(xb, 0.92)
+		local xi = icon("x", 14, T.sub, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = xb})
+		D.tip(xb, "Close")
+		xb.MouseEnter:Connect(function() tween(xb, 0.14, {BackgroundColor3 = T.hover}); D.iconColor(xi, T.text); D.play("hover") end)
+		xb.MouseLeave:Connect(function() tween(xb, 0.2, {BackgroundColor3 = T.field}); D.iconColor(xi, T.sub) end)
+		xb.MouseButton1Click:Connect(function()
+			D.play("click")
+			d.close(true)
+			if type(o.Close) == "function" then task.spawn(o.Close) end
+		end)
+	end
+
+	if o.Draggable then
+		local function beginDialogDrag()
+			local m = D.mouse()
+			if xb and D.inRect(xb, m.X, m.Y) then return end
+			local parent = card.Parent
+			local parentAbs = (parent and parent.AbsolutePosition) or Vector2.zero
+			local size = card.AbsoluteSize
+			local ap = card.AnchorPoint
+			local abs = card.AbsolutePosition
+			local po = abs - parentAbs + size * ap
+			card.Position = UDim2.fromOffset(po.X, po.Y)
+			local grab = Vector2.new(m.X, m.Y) - abs
+			D.startDrag(function(x, y)
+				local vp = D.viewport()
+				local tx = math.clamp(x - grab.X, 8, math.max(8, vp.X - size.X - 8))
+				local ty = math.clamp(y - grab.Y, 8, math.max(8, vp.Y - size.Y - 8))
+				local rel = Vector2.new(tx, ty) - parentAbs
+				card.Position = UDim2.fromOffset(rel.X + size.X * ap.X, rel.Y + size.Y * ap.Y)
+			end, nil, card)
+		end
+		for _, h in ipairs({head, ttl}) do
+			h.InputBegan:Connect(function(i)
+				if i.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+				beginDialogDrag()
+			end)
+		end
+	end
+
 	shade.MouseButton1Click:Connect(function()
 		if o.Dismissable ~= false then d.close() end
 	end)
@@ -10469,6 +10513,12 @@ local function runKeySystem(ks, done)
 		Glass = 0.55,
 		Silent = true,
 		Backdrop = true,
+		Draggable = true,
+		Close = function()
+			D.backdropHold = false
+			D.keyLock = false
+			UI.Unload()
+		end,
 		Validate = function(key)
 			if checkKey(ks, key) then return true end
 			return false, ks.Wrong or "That key is not valid."
