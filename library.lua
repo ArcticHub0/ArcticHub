@@ -6590,10 +6590,10 @@ function D.openDialog(o)
 	D.hideTip()
 	local closed = false
 	local shade = button({Name = "DialogShade", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, ZIndex = 40, Parent = D.L.pop})
-	local card = new("CanvasGroup", {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(o.Width or 380, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = T.pop, GroupTransparency = 1, ZIndex = 41, Parent = D.L.pop})
+	local card = new("CanvasGroup", {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(o.Width or 380, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = o.Surface or T.pop, GroupTransparency = 1, ZIndex = 41, Parent = D.L.pop})
 	corner(card, M.rPop + 4)
 	stroke(card, 0.8, true)
-	D.onGlass(card, 0.08)
+	D.onGlass(card, o.Glass or 0.08)
 	D.blocker(card, 0)
 	local sc = new("UIScale", {Scale = D.uiScale() * 0.92, Parent = card})
 	local body = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 1, Parent = card})
@@ -6675,7 +6675,7 @@ function D.openDialog(o)
 			local ok, msg = o.Validate(value)
 			if not ok then
 				D.play("error")
-				if msg then D.notify(o.Title or "Input", msg, {kind = "Warning", dur = 3}) end
+				if msg and not o.Silent then D.notify(o.Title or "Input", msg, {kind = "Warning", dur = 3}) end
 				return
 			end
 		end
@@ -10447,7 +10447,6 @@ local function runKeySystem(ks, done)
 	if ks.Link then
 		buttons[#buttons + 1] = {Name = "Get Key", Keep = true, Callback = function()
 			if setclipboard then pcall(setclipboard, tostring(ks.Link)) end
-			D.notify(ks.Title or "Key", "Link copied.", {icon = "copy", dur = 2.5})
 		end}
 	end
 	buttons[#buttons + 1] = {Name = "Continue", Style = "Primary", Callback = function(key)
@@ -10463,6 +10462,9 @@ local function runKeySystem(ks, done)
 		Icon = "key-round",
 		Input = {Placeholder = ks.Placeholder or "Enter key"},
 		Dismissable = false,
+		Surface = T.win,
+		Glass = 0.55,
+		Silent = true,
 		Validate = function(key)
 			if checkKey(ks, key) then return true end
 			return false, ks.Wrong or "That key is not valid."
