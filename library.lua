@@ -6495,7 +6495,7 @@ placeBlur()
 D.onCleanup(function() blur:Destroy() end)
 
 function D.applyBackdrop()
-	local open = D.menuOpen and not (D.W_STATE and D.W_STATE.minimized)
+	local open = (D.menuOpen or D.backdropHold) and not (D.W_STATE and D.W_STATE.minimized)
 	tween(D.L.dim, 0.35, {BackgroundTransparency = (open and S.ui_dim) and (1 - (S.ui_dim_amt or 40) / 100) or 1}, Enum.EasingStyle.Sine)
 	placeBlur()
 	tween(blur, 0.35, {Size = (open and S.ui_blur) and (S.ui_blur_size or 24) or 0}, Enum.EasingStyle.Sine)
@@ -6535,7 +6535,7 @@ end
 
 function D.stepParticles(dt)
 	local style = S.fx_style
-	local active = style ~= "Off" and D.menuOpen and not D.cleanShot and not (D.W_STATE and D.W_STATE.minimized)
+	local active = style ~= "Off" and (D.menuOpen or D.backdropHold) and not D.cleanShot and not (D.W_STATE and D.W_STATE.minimized)
 	fxAlpha = fxAlpha + ((active and 1 or 0) - fxAlpha) * math.min(1, dt * 5)
 	if fxAlpha < 0.01 and not active then
 		if #flakes > 0 then D.resetParticles() end
@@ -6707,18 +6707,14 @@ function D.openDialog(o)
 	end
 
 	shade.MouseButton1Click:Connect(function()
-		if o.Dismissable == false then
-			D.play("error")
-			return
-		end
-		d.close()
+		if o.Dismissable ~= false then d.close() end
 	end)
 
 	d.dismissable = o.Dismissable ~= false
 	D.activeDialog = d
 	if D.mouseFree then D.mouseFree(true) end
 	D.play("open", 1.15)
-	tween(shade, 0.22, {BackgroundTransparency = 0.55})
+	tween(shade, 0.22, {BackgroundTransparency = o.Backdrop and 1 or 0.55})
 	tween(card, 0.2, {GroupTransparency = 0})
 	tween(sc, 0.32, {Scale = D.uiScale()}, Enum.EasingStyle.Back)
 	if input then task.delay(0.1, function() if input.Parent then input:CaptureFocus() end end) end
@@ -10454,8 +10450,11 @@ local function runKeySystem(ks, done)
 			D.ensureDir(DIR)
 			pcall(writefile, path, string.gsub(string.gsub(tostring(key or ""), "^%s+", ""), "%s+$", ""))
 		end
+		D.backdropHold = false
 		done()
 	end}
+	D.backdropHold = true
+	D.applyBackdrop()
 	D.openDialog({
 		Title = ks.Title or ((D.CONFIG.Title or "Menu") .. " Key"),
 		Content = ks.Note or ks.Content,
@@ -10465,6 +10464,7 @@ local function runKeySystem(ks, done)
 		Surface = T.win,
 		Glass = 0.55,
 		Silent = true,
+		Backdrop = true,
 		Validate = function(key)
 			if checkKey(ks, key) then return true end
 			return false, ks.Wrong or "That key is not valid."
