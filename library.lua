@@ -6591,8 +6591,8 @@ function D.openDialog(o)
 	local closed = false
 	local shade = button({Name = "DialogShade", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, ZIndex = 40, Parent = D.L.pop})
 	local card = new("CanvasGroup", {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(o.Width or 380, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = o.Surface or T.pop, GroupTransparency = 1, ZIndex = 41, Parent = D.L.pop})
-	corner(card, M.rPop + 4)
-	stroke(card, 0.8, true)
+	corner(card, o.Backdrop and M.rWin or (M.rPop + 4))
+	stroke(card, o.Backdrop and 0.74 or 0.8, true)
 	D.onGlass(card, o.Glass or 0.08)
 	D.blocker(card, 0)
 	local sc = new("UIScale", {Scale = D.uiScale() * 0.92, Parent = card})
@@ -8221,6 +8221,7 @@ D.on(UIS.InputBegan, function(input, gp)
 			D.activeDialog.submit()
 			return
 		end
+		if D.keyLock then return end
 		if kc == Enum.KeyCode.Escape then
 			if #D.pops > 0 then
 				D.closePops(#D.pops)
@@ -10436,9 +10437,11 @@ local function runKeySystem(ks, done)
 			return
 		end
 	end
+	D.composeNav()
 	for k, v in pairs(D.DEF_OVERRIDES or {}) do S[k] = D.clone(v) end
 	D.applyTheme()
 	D.applyMetrics()
+	D.keyLock = true
 	local buttons = {}
 	if ks.Link then
 		buttons[#buttons + 1] = {Name = "Get Key", Keep = true, Callback = function()
@@ -10451,6 +10454,7 @@ local function runKeySystem(ks, done)
 			pcall(writefile, path, string.gsub(string.gsub(tostring(key or ""), "^%s+", ""), "%s+$", ""))
 		end
 		D.backdropHold = false
+		D.keyLock = false
 		done()
 	end}
 	D.backdropHold = true
