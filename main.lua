@@ -1,24 +1,3 @@
---[[
-	ArcticHub — loader
-
-	This is only a gate: it carries no game code of its own, and it loads
-	nothing but what it fetches from the repo URL.
-
-	  1. fetch library.lua        (shared UI framework, used by every game)
-	  2. prompt for a JNKIE key   (one-time)
-	  3. after the key is valid: fetch games/<PlaceId>.lua from the URL and
-	     run it
-	  4. close
-
-	Nothing is embedded and nothing is read from disk — the library and the
-	per-game scripts are pulled from their URLs, and only after the key is
-	accepted is the game script fetched and run.
-]]
-
-----------------------------------------------------------------------
--- endpoints
-----------------------------------------------------------------------
-
 local REPO = "https://raw.githubusercontent.com/ArcticHub0/ArcticHub/refs/heads/main/"
 local LIB_URL = REPO .. "library.lua"
 local GAME_URL = REPO .. "games/" .. game.PlaceId .. ".lua"
@@ -118,69 +97,20 @@ local KEY_SYSTEM = {
 	Wrong = "That key is not valid.",
 }
 
-----------------------------------------------------------------------
--- 3. window (its key prompt is the gate; nothing else happens until it
---    is satisfied)
-----------------------------------------------------------------------
 
-ArcticHub:AddTheme("Arctic", {
-	Background = "0E1524",
-	Panel = "131C2E",
-	Card = "192742",
-	Field = "213452",
-	Hover = "2A3F63",
-	Popup = "10182A",
-	Text = "EDF5FC",
-	Label = "CBDDF1",
-	Subtext = "8FA8C6",
-	Dim = "5F7490",
-	Off = "2B3D5A",
-	Knob = "7C94B0",
-	Accent = "5ED3FF",
-})
+local body = get(GAME_URL)
+if not body then
+	notify("This game is not supported yet.")
+	return
+end
 
--- CreateWindow is a singleton: the per-game script adds its own tabs to this
--- same window, so the loader only builds the shell + key system.
-local win = ArcticHub:CreateWindow({
-	Title = "ArcticHub",
-	Theme = "Arctic",
-	Size = Vector2.new(640, 470),
-	Resizable = true,
-	Search = true,
-	Watermark = true,
-	MenuKey = "RightShift",
-	OpenOnLoad = true,
-	KeySystem = KEY_SYSTEM,
-})
+local fn, err = loadstring(body)
+if not fn then
+	notify("Could not load the game script: " .. tostring(err))
+	return
+end
 
-----------------------------------------------------------------------
--- 4. after the key: load the game script from the URL, run it, close
-----------------------------------------------------------------------
-
--- The key prompt is a window; the window only opens after a valid key, so
--- this fires once, right after validation. Nothing game-specific was fetched
--- before now — the script comes straight from its repo URL.
-local started = false
-win:OnOpen(function()
-	if started then return end
-	started = true
-
-	local body = get(GAME_URL)
-	if not body then
-		notify("This game is not supported yet.")
-		return
-	end
-
-	local fn, err = loadstring(body)
-	if not fn then
-		notify("Could not load the game script: " .. tostring(err))
-		return
-	end
-
-	local ok, e = pcall(fn, ArcticHub)
-	if not ok then
-		notify("Game script error: " .. tostring(e))
-	end
-	-- Loader's job is done: it only validated the key and handed the script
-	-- over. The game script owns everything from here.
-end)
+local ok, e = pcall(fn, ArcticHub)
+if not ok then
+	notify("Game script error: " .. tostring(e))
+end
