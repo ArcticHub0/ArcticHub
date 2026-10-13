@@ -1,16 +1,18 @@
 --[[
 	ArcticHub — loader
 
-	Shared resources live in the ArcticHub repo; this loader only pulls them
-	together for the current game:
+	This is only a gate: it carries no game code of its own, and it loads
+	nothing but what it fetches from the repo URL.
 
-	  1. fetch library.lua        (UI framework, used by every game)
-	  2. fetch games/<PlaceId>.lua (that game's script = supported-game gate)
-	  3. prompt for a JNKIE key   (one-time)
-	  4. run the per-game script once the key is accepted
+	  1. fetch library.lua        (shared UI framework, used by every game)
+	  2. prompt for a JNKIE key   (one-time)
+	  3. after the key is valid: fetch games/<PlaceId>.lua from the URL and
+	     run it
+	  4. close
 
-	Both the library and the game scripts are published obfuscated, so they're
-	distributed as-is and nothing here needs a copy of them.
+	Nothing is embedded and nothing is read from disk — the library and the
+	per-game scripts are pulled from their URLs, and only after the key is
+	accepted is the game script fetched and run.
 ]]
 
 ----------------------------------------------------------------------
@@ -75,26 +77,8 @@ _G.ArcticHub = ArcticHub
 if getgenv then getgenv().ArcticHub = ArcticHub end
 
 ----------------------------------------------------------------------
--- 2. supported-game gate (before the key prompt)
-----------------------------------------------------------------------
-
--- Fetch + compile the per-game script now so unsupported games fail before a
--- key is requested (a one-time key must not be burned on a 404).
-local gameBody = get(GAME_URL)
-if not gameBody then
-	notify("This game is not supported yet.")
-	return
-end
-
-local gameFn, gameErr = loadstring(gameBody)
-if not gameFn then
-	notify("Could not load the game script: " .. tostring(gameErr))
-	return
-end
-
-----------------------------------------------------------------------
--- 3. JNKIE key system (validator only; the key gates the window, which
---    gates running the game script)
+-- 2. JNKIE key system (validator only; the key gates the window, which
+--    gates loading the game script)
 ----------------------------------------------------------------------
 
 -- These are per-account values from your jnkie.com dashboard:
@@ -135,7 +119,8 @@ local KEY_SYSTEM = {
 }
 
 ----------------------------------------------------------------------
--- 4. window (its key prompt is the gate)
+-- 3. window (its key prompt is the gate; nothing else happens until it
+--    is satisfied)
 ----------------------------------------------------------------------
 
 ArcticHub:AddTheme("Arctic", {
@@ -169,14 +154,33 @@ local win = ArcticHub:CreateWindow({
 })
 
 ----------------------------------------------------------------------
--- 5. run the game script after the key is accepted
+-- 4. after the key: load the game script from the URL, run it, close
 ----------------------------------------------------------------------
 
 -- The key prompt is a window; the window only opens after a valid key, so
--- this fires once, right after validation.
+-- this fires once, right after validation. Nothing game-specific was fetched
+-- before now — the script comes straight from its repo URL.
 local started = false
 win:OnOpen(function()
 	if started then return end
 	started = true
-	pcall(gameFn, ArcticHub)
+
+	local body = get(GAME_URL)
+	if not body then
+		notify("This game is not supported yet.")
+		return
+	end
+
+	local fn, err = loadstring(body)
+	if not fn then
+		notify("Could not load the game script: " .. tostring(err))
+		return
+	end
+
+	local ok, e = pcall(fn, ArcticHub)
+	if not ok then
+		notify("Game script error: " .. tostring(e))
+	end
+	-- Loader's job is done: it only validated the key and handed the script
+	-- over. The game script owns everything from here.
 end)
